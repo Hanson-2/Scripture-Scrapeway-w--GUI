@@ -4,7 +4,7 @@ import threading
 import json
 import os
 import time
-from bible_verse_fetcher import BibleGatewayFetcher
+from bible_verse_fetcher import BibleGatewayFetcher, CANONICAL_BOOKS, DEUTERO_BOOKS, TRANSLATION_CODES
 
 BG_COLOR = "#232323"
 FG_COLOR = "#ffffff"
@@ -17,21 +17,6 @@ ERROR_COLOR = "#ff4444"
 BUTTON_BG = "#1a1a1a"
 BUTTON_FG = "#ee4455"
 FONT = ("Consolas", 11)
-
-BOOKS = [
-    "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy",
-    "Joshua", "Judges", "Ruth", "1 Samuel", "2 Samuel", "1 Kings", "2 Kings",
-    "1 Chronicles", "2 Chronicles", "Ezra", "Nehemiah", "Esther", "Job", "Psalm",
-    "Proverbs", "Ecclesiastes", "Song of Solomon", "Isaiah", "Jeremiah", "Lamentations",
-    "Ezekiel", "Daniel", "Hosea", "Joel", "Amos", "Obadiah", "Jonah", "Micah",
-    "Nahum", "Habakkuk", "Zephaniah", "Haggai", "Zechariah", "Malachi",
-    "Matthew", "Mark", "Luke", "John", "Acts", "Romans", "1 Corinthians",
-    "2 Corinthians", "Galatians", "Ephesians", "Philippians", "Colossians",
-    "1 Thessalonians", "2 Thessalonians", "1 Timothy", "2 Timothy", "Titus",
-    "Philemon", "Hebrews", "James", "1 Peter", "2 Peter", "1 John", "2 John",
-    "3 John", "Jude", "Revelation"
-]
-TRANSLATIONS = ["NIV", "ESV", "KJV", "NKJV", "NLT", "NASB", "CSB", "EXB"]
 
 def format_item(item):
     if item["type"] == "heading":
@@ -49,99 +34,113 @@ def format_item(item):
     else:
         return f'[{item["type"].upper()}] {item.get("text","")}'
 
-def color_for_type(type_):
-    return {
-        "heading": HEADING_COLOR,
-        "section": HEADING_COLOR,
-        "verse": VERSE_COLOR,
-        "footnote": FOOTNOTE_COLOR,
-        "crossref": CROSSREF_COLOR,
-        "paragraph": PARAGRAPH_COLOR,
-        "error": ERROR_COLOR
-    }.get(type_, FG_COLOR)
-
 class BibleGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("BibleGateway Fetcher - Dark Mode")
+        self.root.title("BibleGateway Fetcher - Unified Edition")
         self.root.configure(bg=BG_COLOR)
         self.fetcher = BibleGatewayFetcher()
         self.result_data = None
 
-        # --- Top Frame for Controls ---
-        frame = tk.Frame(root, bg=BG_COLOR)
-        frame.pack(fill=tk.X, padx=10, pady=(10, 4))
+        # --- Interactive Fetch Controls ---
+        top_frame = tk.LabelFrame(root, text="Interactive Passage/Range/Chapter/Book Fetch", bg=BG_COLOR, fg=HEADING_COLOR, font=(FONT[0], FONT[1]+1, "bold"))
+        top_frame.pack(fill=tk.X, padx=12, pady=(10, 4))
 
         # Book
-        tk.Label(frame, text="Book:", bg=BG_COLOR, fg=FG_COLOR, font=FONT).grid(row=0, column=0, sticky="w")
+        tk.Label(top_frame, text="Book:", bg=BG_COLOR, fg=FG_COLOR, font=FONT).grid(row=0, column=0, sticky="w")
         self.book_var = tk.StringVar(value="Genesis")
-        self.book_box = ttk.Combobox(frame, textvariable=self.book_var, values=BOOKS, font=FONT, width=16, state="readonly")
+        self.book_box = ttk.Combobox(top_frame, textvariable=self.book_var, values=CANONICAL_BOOKS+DEUTERO_BOOKS, font=FONT, width=18, state="readonly")
         self.book_box.grid(row=0, column=1, padx=4)
 
         # Chapter
-        tk.Label(frame, text="Chapter:", bg=BG_COLOR, fg=FG_COLOR, font=FONT).grid(row=0, column=2)
+        tk.Label(top_frame, text="Chapter:", bg=BG_COLOR, fg=FG_COLOR, font=FONT).grid(row=0, column=2)
         self.chapter_var = tk.IntVar(value=1)
-        tk.Spinbox(frame, from_=1, to=200, textvariable=self.chapter_var, font=FONT, width=5, bg=BG_COLOR, fg=FG_COLOR, insertbackground=FG_COLOR).grid(row=0, column=3, padx=4)
+        tk.Spinbox(top_frame, from_=1, to=200, textvariable=self.chapter_var, font=FONT, width=5, bg=BG_COLOR, fg=FG_COLOR, insertbackground=FG_COLOR).grid(row=0, column=3, padx=4)
 
         # Verse(s)
-        tk.Label(frame, text="Verse:", bg=BG_COLOR, fg=FG_COLOR, font=FONT).grid(row=0, column=4)
+        tk.Label(top_frame, text="Verse:", bg=BG_COLOR, fg=FG_COLOR, font=FONT).grid(row=0, column=4)
         self.verse_var = tk.IntVar(value=1)
-        tk.Spinbox(frame, from_=1, to=200, textvariable=self.verse_var, font=FONT, width=5, bg=BG_COLOR, fg=FG_COLOR, insertbackground=FG_COLOR).grid(row=0, column=5, padx=4)
-        tk.Label(frame, text="to", bg=BG_COLOR, fg=FG_COLOR, font=FONT).grid(row=0, column=6)
+        tk.Spinbox(top_frame, from_=1, to=200, textvariable=self.verse_var, font=FONT, width=5, bg=BG_COLOR, fg=FG_COLOR, insertbackground=FG_COLOR).grid(row=0, column=5, padx=4)
+        tk.Label(top_frame, text="to", bg=BG_COLOR, fg=FG_COLOR, font=FONT).grid(row=0, column=6)
         self.verse_end_var = tk.IntVar(value=1)
-        tk.Spinbox(frame, from_=1, to=200, textvariable=self.verse_end_var, font=FONT, width=5, bg=BG_COLOR, fg=FG_COLOR, insertbackground=FG_COLOR).grid(row=0, column=7, padx=4)
+        tk.Spinbox(top_frame, from_=1, to=200, textvariable=self.verse_end_var, font=FONT, width=5, bg=BG_COLOR, fg=FG_COLOR, insertbackground=FG_COLOR).grid(row=0, column=7, padx=4)
 
         # Translation
-        tk.Label(frame, text="Translation:", bg=BG_COLOR, fg=FG_COLOR, font=FONT).grid(row=0, column=8)
-        self.translation_var = tk.StringVar(value="EXB")
-        self.translation_box = ttk.Combobox(frame, textvariable=self.translation_var, values=TRANSLATIONS, font=FONT, width=6, state="readonly")
+        tk.Label(top_frame, text="Translation:", bg=BG_COLOR, fg=FG_COLOR, font=FONT).grid(row=0, column=8)
+        self.translation_var = tk.StringVar(value="KJV")
+        self.translation_box = ttk.Combobox(top_frame, textvariable=self.translation_var, values=list(TRANSLATION_CODES.keys()), font=FONT, width=10, state="readonly")
         self.translation_box.grid(row=0, column=9, padx=4)
+        self.translation_box.bind('<<ComboboxSelected>>', self.update_apocrypha_state)
 
         # Fetch Mode
         self.mode_var = tk.StringVar(value="verse")
         modes = [("Single Verse", "verse"), ("Verse Range", "range"), ("Full Chapter", "chapter"), ("Full Book", "book")]
         for idx, (text, val) in enumerate(modes):
-            tk.Radiobutton(frame, text=text, variable=self.mode_var, value=val, bg=BG_COLOR, fg=BUTTON_FG,
+            tk.Radiobutton(top_frame, text=text, variable=self.mode_var, value=val, bg=BG_COLOR, fg=BUTTON_FG,
                            selectcolor=BG_COLOR, font=FONT, activeforeground=HEADING_COLOR, activebackground=BG_COLOR).grid(row=1, column=idx, pady=(5,2), sticky="w")
 
         # Fetch Button
-        tk.Button(frame, text="Fetch", font=FONT, bg=BUTTON_BG, fg=BUTTON_FG, activebackground=HEADING_COLOR, command=self.start_fetch).grid(row=1, column=5, padx=10, pady=4, sticky="w")
+        tk.Button(top_frame, text="Fetch", font=FONT, bg=BUTTON_BG, fg=BUTTON_FG, activebackground=HEADING_COLOR, command=self.start_fetch).grid(row=1, column=5, padx=10, pady=4, sticky="w")
 
         # Copy/Download JSON Buttons
-        tk.Button(frame, text="Copy JSON", font=FONT, bg=BUTTON_BG, fg=BUTTON_FG, command=self.copy_json).grid(row=1, column=6, padx=6)
-        tk.Button(frame, text="Download JSON", font=FONT, bg=BUTTON_BG, fg=BUTTON_FG, command=self.save_json).grid(row=1, column=7, padx=6)
+        tk.Button(top_frame, text="Copy JSON", font=FONT, bg=BUTTON_BG, fg=BUTTON_FG, command=self.copy_json).grid(row=1, column=6, padx=6)
+        tk.Button(top_frame, text="Download JSON", font=FONT, bg=BUTTON_BG, fg=BUTTON_FG, command=self.save_json).grid(row=1, column=7, padx=6)
 
-        # --- Advanced: Batch Download Controls ---
-        batch_frame = tk.LabelFrame(root, text="Download Entire Bible", bg=BG_COLOR, fg=HEADING_COLOR, font=(FONT[0], FONT[1]+1, "bold"))
-        batch_frame.pack(fill=tk.X, padx=12, pady=(4, 0))
+        # --- Divider ---
+        tk.Label(root, text=" ", bg=BG_COLOR).pack(pady=2)
 
+        # --- Batch Download Controls ---
+        batch_frame = tk.LabelFrame(root, text="Batch: Multi-Book/Apocrypha Download", bg=BG_COLOR, fg=HEADING_COLOR, font=(FONT[0], FONT[1]+1, "bold"))
+        batch_frame.pack(fill=tk.X, padx=12, pady=(0, 0))
+
+        # Canonical Books Multi-Select
+        tk.Label(batch_frame, text="Books:", bg=BG_COLOR, fg=FG_COLOR, font=FONT).grid(row=0, column=0, sticky="nw")
+        self.canon_books_lb = tk.Listbox(batch_frame, selectmode=tk.MULTIPLE, height=10, width=19, exportselection=0,
+                                         bg="#181818", fg=FG_COLOR, font=FONT)
+        for book in CANONICAL_BOOKS:
+            self.canon_books_lb.insert(tk.END, book)
+        self.canon_books_lb.grid(row=1, column=0, rowspan=6, sticky="ns", pady=4)
+
+        # Deuterocanonical Books Multi-Select (separate)
+        tk.Label(batch_frame, text="Apocrypha:", bg=BG_COLOR, fg=HEADING_COLOR, font=FONT).grid(row=0, column=1, sticky="nw")
+        self.deutero_books_lb = tk.Listbox(batch_frame, selectmode=tk.MULTIPLE, height=10, width=21, exportselection=0,
+                                           bg="#181818", fg="#ffaaff", font=FONT)
+        for book in DEUTERO_BOOKS:
+            self.deutero_books_lb.insert(tk.END, book)
+        self.deutero_books_lb.grid(row=1, column=1, rowspan=6, sticky="ns", pady=4)
+
+        # Translation Combo (batch)
+        tk.Label(batch_frame, text="Translation:", bg=BG_COLOR, fg=FG_COLOR, font=FONT).grid(row=0, column=2, sticky="w", padx=(12,0))
+        self.batch_translation = tk.StringVar(value="KJV")
+        self.batch_translation_box = ttk.Combobox(batch_frame, textvariable=self.batch_translation, values=list(TRANSLATION_CODES.keys()), font=FONT, width=10, state="readonly")
+        self.batch_translation_box.grid(row=0, column=3, sticky="w", padx=(2,0))
+        self.batch_translation_box.bind('<<ComboboxSelected>>', self.update_apocrypha_state)
+
+        # Save Folder
+        tk.Label(batch_frame, text="Save to:", bg=BG_COLOR, fg=FG_COLOR, font=FONT).grid(row=0, column=4, sticky="e", padx=(15,0))
         self.save_folder = tk.StringVar(value=os.getcwd())
-        tk.Label(batch_frame, text="Save to folder:", bg=BG_COLOR, fg=FG_COLOR, font=FONT).grid(row=0, column=0, sticky="w")
-        tk.Entry(batch_frame, textvariable=self.save_folder, font=FONT, width=35, bg="#181818", fg="#e6e6e6", bd=1).grid(row=0, column=1, padx=4)
-        tk.Button(batch_frame, text="Browse", font=FONT, bg=BUTTON_BG, fg=BUTTON_FG, command=self.pick_folder).grid(row=0, column=2, padx=4)
-        tk.Label(batch_frame, text="Translation:", bg=BG_COLOR, fg=FG_COLOR, font=FONT).grid(row=0, column=3, padx=(18,0))
-        self.batch_translation = tk.StringVar(value="EXB")
-        self.batch_translation_box = ttk.Combobox(batch_frame, textvariable=self.batch_translation, values=TRANSLATIONS, font=FONT, width=6, state="readonly")
-        self.batch_translation_box.grid(row=0, column=4, padx=4)
+        tk.Entry(batch_frame, textvariable=self.save_folder, font=FONT, width=24, bg="#181818", fg="#e6e6e6", bd=1).grid(row=0, column=5, padx=4)
+        tk.Button(batch_frame, text="Browse", font=FONT, bg=BUTTON_BG, fg=BUTTON_FG, command=self.pick_folder).grid(row=0, column=6, padx=4)
 
-        self.download_btn = tk.Button(batch_frame, text="Download Entire Bible", font=FONT, bg=BUTTON_BG, fg=BUTTON_FG, command=self.start_batch)
-        self.download_btn.grid(row=0, column=5, padx=6)
+        # Batch Download Controls
+        self.download_btn = tk.Button(batch_frame, text="Download Selected Books", font=FONT, bg=BUTTON_BG, fg=BUTTON_FG, command=self.start_batch)
+        self.download_btn.grid(row=1, column=4, columnspan=2, padx=2, pady=(4,0))
         self.pause_btn = tk.Button(batch_frame, text="Pause", font=FONT, bg=BUTTON_BG, fg="#FFD700", command=self.pause_batch, state=tk.DISABLED)
-        self.pause_btn.grid(row=0, column=6, padx=2)
+        self.pause_btn.grid(row=2, column=4, padx=2)
         self.continue_btn = tk.Button(batch_frame, text="Continue", font=FONT, bg=BUTTON_BG, fg="#9fff9f", command=self.continue_batch, state=tk.DISABLED)
-        self.continue_btn.grid(row=0, column=7, padx=2)
+        self.continue_btn.grid(row=2, column=5, padx=2)
         self.cancel_btn = tk.Button(batch_frame, text="Cancel", font=FONT, bg=BUTTON_BG, fg=ERROR_COLOR, command=self.cancel_batch, state=tk.DISABLED)
-        self.cancel_btn.grid(row=0, column=8, padx=2)
+        self.cancel_btn.grid(row=2, column=6, padx=2)
 
-        self.progress = ttk.Progressbar(batch_frame, orient="horizontal", length=380, mode="determinate")
-        self.progress.grid(row=1, column=0, columnspan=6, pady=4, sticky="ew")
-
+        # Progress Bar and Status
+        self.progress = ttk.Progressbar(batch_frame, orient="horizontal", length=340, mode="determinate")
+        self.progress.grid(row=3, column=4, columnspan=3, pady=(6,0), sticky="ew")
         self.status_label = tk.Label(batch_frame, text="Ready.", bg=BG_COLOR, fg=PARAGRAPH_COLOR, font=FONT, anchor="w")
-        self.status_label.grid(row=1, column=6, columnspan=3, sticky="w")
+        self.status_label.grid(row=4, column=4, columnspan=3, sticky="w")
 
         # --- Scrolled Text Output Widget ---
         self.text = scrolledtext.ScrolledText(root, font=FONT, bg=BG_COLOR, fg=FG_COLOR, insertbackground=FG_COLOR,
-                                              width=110, height=28, wrap=tk.WORD, borderwidth=2, relief=tk.GROOVE)
+                                              width=110, height=22, wrap=tk.WORD, borderwidth=2, relief=tk.GROOVE)
         self.text.pack(fill=tk.BOTH, expand=True, padx=12, pady=8)
         self.text.tag_configure("heading", foreground=HEADING_COLOR, font=(FONT[0], FONT[1]+2, "bold"))
         self.text.tag_configure("section", foreground=HEADING_COLOR, font=(FONT[0], FONT[1]+1, "italic"))
@@ -157,12 +156,33 @@ class BibleGUI:
         self.batch_paused = threading.Event()
         self.batch_cancel = threading.Event()
 
+        self.update_apocrypha_state()
+
     def pick_folder(self):
         folder = filedialog.askdirectory(initialdir=self.save_folder.get() or os.getcwd())
         if folder:
             self.save_folder.set(folder)
 
-    # --- Regular Fetching Methods ---
+    def update_apocrypha_state(self, event=None):
+        # For both single and batch modes
+        tr_code = self.translation_var.get()
+        tr_batch = self.batch_translation.get()
+        for lb in [self.deutero_books_lb]:
+            state = tk.NORMAL if TRANSLATION_CODES.get(tr_batch or tr_code, {}).get("supports_apocrypha", False) else tk.DISABLED
+            for i in range(lb.size()):
+                lb.itemconfig(i, fg="#ffaaff" if state == tk.NORMAL else "#444444")
+            if not state:
+                lb.selection_clear(0, tk.END)
+        # Also, if single-fetch is set to a deuterocanonical book, switch translation if needed
+        single_book = self.book_var.get()
+        if single_book in DEUTERO_BOOKS and not TRANSLATION_CODES.get(tr_code, {}).get("supports_apocrypha", False):
+            # Switch to a translation that supports apocrypha
+            for k, v in TRANSLATION_CODES.items():
+                if v.get("supports_apocrypha"):
+                    self.translation_var.set(k)
+                    break
+
+    # --- Interactive Fetch Methods ---
     def start_fetch(self):
         threading.Thread(target=self.do_fetch, daemon=True).start()
 
@@ -231,12 +251,21 @@ class BibleGUI:
         if self.batch_thread and self.batch_thread.is_alive():
             messagebox.showwarning("Already Running", "Batch is already running.")
             return
+        canon_idx = self.canon_books_lb.curselection()
+        deutero_idx = self.deutero_books_lb.curselection()
+        books = [self.canon_books_lb.get(i) for i in canon_idx]
+        if TRANSLATION_CODES.get(self.batch_translation.get(), {}).get("supports_apocrypha", False):
+            books += [self.deutero_books_lb.get(i) for i in deutero_idx]
+        if not books:
+            messagebox.showwarning("No Books", "Select at least one book.")
+            return
         self.download_btn.config(state=tk.DISABLED)
         self.pause_btn.config(state=tk.NORMAL)
         self.continue_btn.config(state=tk.DISABLED)
         self.cancel_btn.config(state=tk.NORMAL)
         self.progress["value"] = 0
-        self.status_label.config(text="Starting...")
+        self.progress["maximum"] = len(books)
+        self.status_label.config(text="Starting batch…")
         self.text.configure(state=tk.NORMAL)
         self.text.delete(1.0, tk.END)
         self.text.insert(tk.END, f"Batch started...\n", "section")
@@ -246,7 +275,7 @@ class BibleGUI:
         translation = self.batch_translation.get()
         self.batch_thread = threading.Thread(
             target=self.do_batch_download,
-            args=(save_folder, translation),
+            args=(books, save_folder, translation),
             daemon=True
         )
         self.batch_thread.start()
@@ -261,21 +290,21 @@ class BibleGUI:
         self.batch_paused.clear()
         self.pause_btn.config(state=tk.NORMAL)
         self.continue_btn.config(state=tk.DISABLED)
-        self.status_label.config(text="Continuing...")
+        self.status_label.config(text="Continuing…")
+
 
     def cancel_batch(self):
         self.batch_cancel.set()
-        self.status_label.config(text="Canceling...")
+        self.status_label.config(text="Canceling…")
         self.pause_btn.config(state=tk.DISABLED)
         self.continue_btn.config(state=tk.DISABLED)
         self.cancel_btn.config(state=tk.DISABLED)
         self.download_btn.config(state=tk.NORMAL)
 
-    def do_batch_download(self, save_folder, translation):
-        total = len(BOOKS)
+    def do_batch_download(self, books, save_folder, translation):
+        total = len(books)
         self.progress["maximum"] = total
-        for idx, book in enumerate(BOOKS):
-            # Pause logic
+        for idx, book in enumerate(books):
             while self.batch_paused.is_set():
                 self.status_label.config(text=f"Paused on {book} ({idx+1}/{total})")
                 time.sleep(0.25)
@@ -285,7 +314,6 @@ class BibleGUI:
             if self.batch_cancel.is_set():
                 self.status_label.config(text="Batch canceled.")
                 break
-            # Update GUI for current book
             self.progress["value"] = idx
             self.status_label.config(text=f"Fetching: {book} ({idx+1}/{total})")
             self.text.insert(tk.END, f"Fetching {book} ({translation})...\n", "section")
@@ -293,8 +321,7 @@ class BibleGUI:
             self.text.update()
             try:
                 items = self.fetcher.fetch_entire_book(book, translation)
-                # Save to file
-                fname = os.path.join(save_folder, f"{book}_{translation}.json")
+                fname = os.path.join(save_folder, f"{book.replace(' ','_')}_{translation}.json")
                 with open(fname, "w", encoding="utf-8") as f:
                     json.dump(items, f, ensure_ascii=False, indent=2)
                 self.text.insert(tk.END, f"Saved {fname}\n", "paragraph")
