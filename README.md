@@ -1,5 +1,14 @@
 # Scripture Scrapeway w/ GUI
-Pulls full Bible Scripture in customizable quantities; utilizes a GUI with easy to use UI. Saves as JSON.
+Pulls full Bible Scripture in customizable quantities; utilizes a GUI with easy to use UI. Saves as JSON. 
+
+## 💖 Support My Work
+
+If you’ve found this project helpful or would like to support my work, feel free to send a tip via Cash App:
+
+👉 [**$skhandson**](https://cash.app/$skhandson)
+
+Every bit helps—thank you!
+
 
 # BibleGateway Structured Scraper & GUI
 
